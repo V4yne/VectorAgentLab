@@ -18,7 +18,7 @@ class MyAdvancedSearchTool:
 
     def __init__(self):
         self.name = "my_advanced_search"
-        self.description = "智能搜索工具，支持多个搜索源，自动选择最佳结果"
+        self.description = "智能搜索工具，支持 Tavily 和 SerpAPI 多个搜索源，返回摘要、标题、链接和片段"
         self.search_sources = []
         self._setup_search_sources()
 
@@ -67,38 +67,58 @@ class MyAdvancedSearchTool:
 
         print(f"🔍 开始智能搜索: {query}")
 
-        # 尝试多个搜索源，返回最佳结果
+        # 尝试多个搜索源，并合并可用结果
+        successful_results = []
         for source in self.search_sources:
             try:
                 if source == "tavily":
                     result = self._search_with_tavily(query)
                     if result and "未找到" not in result:
-                        return f"📊 Tavily AI搜索结果:\n\n{result}"
+                        successful_results.append(f"📊 Tavily AI搜索结果:\n\n{result}")
 
                 elif source == "serpapi":
                     result = self._search_with_serpapi(query)
                     if result and "未找到" not in result:
-                        return f"🌐 SerpApi Google搜索结果:\n\n{result}"
+                        successful_results.append(f"🌐 SerpApi Google搜索结果:\n\n{result}")
 
             except Exception as e:
                 print(f"⚠️ {source} 搜索失败: {e}")
                 continue
 
+        if successful_results:
+            return "\n\n---\n\n".join(successful_results)
+
         return "❌ 所有搜索源都失败了，请检查网络连接和API密钥配置"
 
     def _search_with_tavily(self, query: str) -> str:
         """使用Tavily搜索"""
-        response = self.tavily_client.search(query=query, max_results=3)
+        try:
+            response = self.tavily_client.search(
+                query=query,
+                max_results=5,
+                search_depth="advanced",
+                include_answer=True,
+            )
+        except TypeError:
+            response = self.tavily_client.search(query=query, max_results=5)
 
         if response.get('answer'):
             result = f"💡 AI直接答案:{response['answer']}\n\n"
         else:
             result = ""
 
+        results = response.get('results', [])[:5]
+        if not result and not results:
+            return "未找到相关结果"
+
         result += "🔗 相关结果:\n"
-        for i, item in enumerate(response.get('results', [])[:3], 1):
+        for i, item in enumerate(results, 1):
             result += f"[{i}] {item.get('title', '')}\n"
-            result += f"    {item.get('content', '')[:150]}...\n\n"
+            if item.get("url"):
+                result += f"    URL: {item.get('url')}\n"
+            if item.get("published_date"):
+                result += f"    Published: {item.get('published_date')}\n"
+            result += f"    {item.get('content', '')[:300]}...\n\n"
 
         return result
 
@@ -109,16 +129,26 @@ class MyAdvancedSearchTool:
         search = serpapi.GoogleSearch({
             "q": query,
             "api_key": os.getenv("SERPAPI_API_KEY"),
-            "num": 3
+            "num": 5
         })
 
         results = search.get_dict()
 
         result = "🔗 Google搜索结果:\n"
         if "organic_results" in results:
-            for i, res in enumerate(results["organic_results"][:3], 1):
+            organic_results = results["organic_results"][:5]
+            if not organic_results:
+                return "未找到相关结果"
+
+            for i, res in enumerate(organic_results, 1):
                 result += f"[{i}] {res.get('title', '')}\n"
+                if res.get("link"):
+                    result += f"    URL: {res.get('link')}\n"
+                if res.get("date"):
+                    result += f"    Date: {res.get('date')}\n"
                 result += f"    {res.get('snippet', '')}\n\n"
+        else:
+            return "未找到相关结果"
 
         return result
 
@@ -132,9 +162,11 @@ def create_advanced_search_registry():
     # 注册搜索工具的方法作为函数
     registry.register_function(
         name="advanced_search",
-        description="高级搜索工具，整合Tavily和SerpAPI多个搜索源，提供更全面的搜索结果",
+        description=(
+            "高级搜索工具，适合搜索最新、实时、新闻、天气、政策、疫情、病毒、公共卫生、价格等动态网页信息。"
+            "输入应是搜索关键词；公共卫生问题建议包含“官方、疾控、通报、监测”等限定词。"
+        ),
         func=search_tool.search
     )
 
     return registry
-

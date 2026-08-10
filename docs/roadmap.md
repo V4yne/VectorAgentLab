@@ -80,6 +80,42 @@
 - Agent 可以选择工具、观察结果、继续推理。
 - 运行过程可以被事件记录。
 
+## 阶段 3.5：本地 Web 测试台
+
+目标：提供一个浏览器聊天页面，方便测试当前 Agent、tools 和多轮对话行为。
+
+建议实现：
+
+- `web.app` FastAPI 服务入口。
+- `web.agent_factory` 组装 `SimpleAgent` 和本地 tools。
+- `web.static` 浏览器聊天界面。
+- `start.sh` 和 `stop.sh` 一键启动/停止本地服务。
+
+完成标准：
+
+- 可以通过浏览器访问本地聊天页面。
+- 页面可以和 `SimpleAgent` 进行多轮对话。
+- Web 模块不改变 `core/`、`agents/`、`tools/` 的核心设计。
+
+## 阶段 3.6：对话持久化
+
+目标：让本地 Web 测试台可以保存并恢复历史话题。
+
+建议实现：
+
+- `storage.base.ConversationStore`
+- `storage.models.Conversation`
+- `storage.models.StoredMessage`
+- `storage.models.StoredTraceEvent`
+- `storage.sqlite.SQLiteConversationStore`
+- Web 侧话题列表、历史消息加载和最近一次 Trace 恢复
+
+完成标准：
+
+- 刷新页面后仍然能看到之前聊过的话题。
+- 点击某个话题后，可以看到该话题里的上下文消息。
+- 重启 Web 服务后，本地 SQLite 中的历史话题仍然存在。
+
 ## 阶段 4：记忆系统
 
 目标：让 Agent 能够利用历史上下文和外部知识。
@@ -216,4 +252,3 @@
 - 更严格的沙箱执行。
 - 与常见向量数据库集成。
 - 更完整的 benchmark 和评测报告。
-

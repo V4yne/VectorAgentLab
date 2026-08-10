@@ -60,6 +60,7 @@ VectorAgentLab/
     │   └── builtin/
     │       ├── calculator.py    # 计算工具
     │       ├── search.py        # 搜索工具
+    │       ├── time.py          # 时间工具
     │       ├── file.py          # 文件工具
     │       └── python_repl.py   # Python 执行工具
     │
@@ -69,6 +70,11 @@ VectorAgentLab/
     │   ├── long_term.py         # 长期记忆
     │   ├── vector_store.py      # 向量检索
     │   └── summarizer.py        # 对话压缩
+    │
+    ├── storage/                 # 对话与运行数据持久化
+    │   ├── base.py              # ConversationStore 抽象接口
+    │   ├── models.py            # Conversation / Message / Trace 数据结构
+    │   └── sqlite.py            # SQLite 本地存储实现
     │
     ├── planning/                # 规划与任务分解
     │   ├── planner.py
@@ -82,6 +88,12 @@ VectorAgentLab/
     │   ├── events.py            # 事件流
     │   ├── callbacks.py         # 回调机制
     │   └── async_runner.py      # 异步运行
+    │
+    ├── web/                     # 本地 Web 测试台
+    │   ├── app.py               # FastAPI 服务入口
+    │   ├── agent_factory.py     # Web 侧 Agent 创建逻辑
+    │   ├── schemas.py           # API 请求/响应结构
+    │   └── static/              # 浏览器聊天页面
     │
     ├── guardrails/              # 安全与约束
     │   ├── input_filter.py
@@ -120,7 +132,8 @@ VectorAgentLab/
 这个项目大致分为三层：
 
 - 核心抽象层：`core/`
-- Agent 能力层：`agents/`、`models/`、`tools/`、`memory/`、`planning/`、`runtime/`
+- Agent 能力层：`agents/`、`models/`、`tools/`、`memory/`、`storage/`、`planning/`、`runtime/`
+- 本地测试台：`web/`
 - 工程化支撑层：`guardrails/`、`observability/`、`evaluation/`、`tests/`
 
 更详细的模块说明见 [docs/architecture.md](docs/architecture.md)。
@@ -140,3 +153,64 @@ python -m pip install -e ".[dev]"
 当前建议使用 Python 3.9 或更高版本。
 
 测试会在核心接口开始实现后逐步补充。
+
+## 本地 Web 测试台
+
+安装 Web 依赖：
+
+```bash
+python -m pip install -e ".[web]"
+```
+
+一键启动：
+
+```bash
+./start.sh
+```
+
+浏览器打开：
+
+```text
+http://127.0.0.1:8000
+```
+
+停止服务：
+
+```bash
+./stop.sh
+```
+
+默认 Web 测试台会使用当前 `.env` 里的 LLM 配置，并注册本地 tools：`advanced_search` 和 `current_time`。
+
+Web 测试台会把每个话题、话题内消息和最近一次 Trace 保存到本地 SQLite：
+
+```text
+.vector_agent_lab/conversations.sqlite3
+```
+
+如果想换存储位置，可以设置：
+
+```bash
+export VECTOR_AGENT_LAB_CONVERSATION_DB=/path/to/conversations.sqlite3
+```
+
+这个存储层只负责保存原始对话上下文；后续的 `memory/` 模块会负责摘要、检索、长期记忆等面向 Agent 推理的能力。
+
+本地开发时通常不需要打包。`python -m pip install -e ".[web]"` 里的 `-e` 表示可编辑安装，改动源码后重启服务即可生效。
+
+## 打包验证
+
+如果想验证这个项目作为 Python 包安装后的效果，可以先安装开发依赖，再打包：
+
+```bash
+python -m pip install -e ".[dev,web]"
+./build.sh
+```
+
+打包完成后可以安装生成的 wheel，并使用包提供的命令启动/停止 Web 测试台：
+
+```bash
+python -m pip install "dist/vector_agent_lab-0.1.0-py3-none-any.whl[web]"
+vector-agent-lab-web-start
+vector-agent-lab-web-stop
+```

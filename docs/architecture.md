@@ -17,8 +17,10 @@ agents/
 models/
 tools/
 memory/
+storage/
 planning/
 runtime/
+web/
 
 工程化支撑层
 guardrails/
@@ -28,7 +30,7 @@ tests/
 examples/
 ```
 
-核心抽象层负责定义稳定协议，Agent 能力层负责让 Agent 具备推理、工具、记忆和规划能力，工程化支撑层负责安全、调试、评测和示例。
+核心抽象层负责定义稳定协议，Agent 能力层负责让 Agent 具备推理、工具、记忆、持久化和规划能力，`web/` 负责本地交互测试，工程化支撑层负责安全、调试、评测和示例。
 
 ## core/
 
@@ -98,6 +100,7 @@ Agent 框架应该允许自由切换模型。今天使用 OpenAI，明天换成�
 
 - `calculator.py`：计算工具。
 - `search.py`：搜索工具。
+- `time.py`：时间工具。
 - `file.py`：文件工具。
 - `python_repl.py`：Python 执行工具。
 
@@ -120,6 +123,20 @@ Agent 框架应该允许自由切换模型。今天使用 OpenAI，明天换成�
 为什么需要这一层：
 
 真实 Agent 往往需要记住用户偏好、历史任务、外部知识和之前的执行结果。没有记忆的 Agent 更像一次性问答机器人。
+
+## storage/
+
+`storage/` 负责对话和运行数据的持久化。
+
+它保存的是“真实发生过的记录”，例如话题、用户消息、Assistant 回复、工具执行轨迹和运行元数据。
+
+- `base.py`：`ConversationStore` 抽象接口，定义对话存储应该提供哪些能力。
+- `models.py`：`Conversation`、`StoredMessage`、`StoredTraceEvent` 等存储数据结构。
+- `sqlite.py`：SQLite 本地存储实现，适合本地 Web 测试台和学习阶段使用。
+
+为什么需要这一层：
+
+对话存储和记忆系统不是一回事。`storage/` 负责完整保存原始上下文，保证刷新页面、重启服务后还能找回历史话题；`memory/` 负责把历史信息加工成 Agent 推理时可用的短期记忆、长期记忆、摘要或向量检索结果。
 
 ## planning/
 
@@ -151,6 +168,22 @@ Agent 框架应该允许自由切换模型。今天使用 OpenAI，明天换成�
 为什么需要这一层：
 
 复杂 Agent 不是调用一次模型就结束。ReAct、工具调用和多 Agent 协作都需要稳定的执行循环和运行时事件。
+
+## web/
+
+`web/` 是本地 Web 测试台。
+
+它负责把当前框架能力包装成浏览器里可以交互测试的应用，但不承载 Agent 核心逻辑。
+
+- `app.py`：FastAPI 服务入口，同时提供 API 和静态前端页面。
+- `agent_factory.py`：Web 侧 Agent 创建逻辑，负责组装 `SimpleAgent`、LLM 和本地 tools。
+- `schemas.py`：Web API 的请求和响应结构。
+- `static/`：浏览器聊天页面。
+- Web 侧会通过 `storage/` 保存话题列表、话题内消息和最近一次 Trace。
+
+为什么需要这一层：
+
+命令行适合最早期验证，但不适合观察多轮对话、工具调用和后续调试信息。把 Web 测试台单独放在 `web/`，可以让它服务于开发体验，同时不污染 `core/`、`agents/`、`tools/` 这些框架主模块。
 
 ## guardrails/
 
@@ -231,9 +264,11 @@ core
   <- models
   <- tools
   <- memory
+  <- storage
   <- planning
   <- agents
   <- runtime
+  <- web
   <- guardrails / observability / evaluation
 ```
 
@@ -242,5 +277,5 @@ core
 - `core/` 尽量不依赖其他业务模块。
 - `agents/` 可以组合 `models/`、`tools/`、`memory/`、`planning/`。
 - `runtime/` 负责运行编排，不应该塞具体 Agent 策略。
+- `web/` 只负责本地交互测试，应该通过公开模块组装 Agent，而不是反向影响核心抽象。
 - `evaluation/`、`observability/`、`guardrails/` 是横向能力，可以围绕 Agent 运行过程工作。
-

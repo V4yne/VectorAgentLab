@@ -19,11 +19,24 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "build>=1.2",
   "pytest>=8.0"
 ]
+web = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27"
+]
+
+[project.scripts]
+vector-agent-lab-web = "vector_agent_lab.web.app:main"
+vector-agent-lab-web-start = "vector_agent_lab.web.cli:start_main"
+vector-agent-lab-web-stop = "vector_agent_lab.web.cli:stop_main"
 
 [tool.setuptools.packages.find]
 include = ["vector_agent_lab*"]
+
+[tool.setuptools.package-data]
+vector_agent_lab = ["web/static/*.html", "web/static/*.css", "web/static/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["vector_agent_lab/tests"]

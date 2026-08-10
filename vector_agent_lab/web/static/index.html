@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VectorAgentLab</title>
+    <link rel="stylesheet" href="/static/style.css?v=20260722_1">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">V</span>
+          <div>
+            <div class="brand-name">VectorAgentLab</div>
+            <div id="statusText" class="status-text">Starting</div>
+          </div>
+        </div>
+
+        <section class="conversation-panel" aria-labelledby="conversationsTitle">
+          <div class="panel-heading">
+            <h2 id="conversationsTitle">Topics</h2>
+            <button id="newTopicButton" class="mini-button" type="button" title="New topic">+</button>
+          </div>
+          <div id="conversationList" class="conversation-list">
+            <div class="empty-state">No topics yet</div>
+          </div>
+        </section>
+
+        <section class="tool-panel" aria-labelledby="toolsTitle">
+          <h2 id="toolsTitle">Tools</h2>
+          <div id="toolList" class="tool-list"></div>
+        </section>
+
+        <section class="trace-panel" aria-labelledby="traceTitle">
+          <h2 id="traceTitle">Trace</h2>
+          <div id="traceList" class="trace-list">
+            <div class="empty-state">No trace yet</div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="chat-panel">
+        <header class="chat-header">
+          <div>
+            <h1>Agent Chat</h1>
+            <p id="sessionLabel">Session pending</p>
+          </div>
+          <button id="newSessionButton" class="secondary-button" type="button">New</button>
+        </header>
+
+        <section id="messageList" class="message-list" aria-live="polite"></section>
+
+        <form id="chatForm" class="composer">
+          <textarea id="messageInput" rows="1" placeholder="输入消息" required></textarea>
+          <button id="sendButton" type="submit">Send</button>
+        </form>
+      </main>
+    </div>
+
+    <script src="/static/app.js?v=20260722_1"></script>
+  </body>
+</html>

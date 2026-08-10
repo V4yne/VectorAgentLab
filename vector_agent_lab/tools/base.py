@@ -7,9 +7,10 @@ Planned responsibility:
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List
-from pydantic import BaseModel
+import time
 
 from .schema import ToolParameter
+from .response import ToolResponse
 
 class Tool(ABC):
     """VectorAgentLab工具基类"""
@@ -32,3 +33,24 @@ class Tool(ABC):
     def get_description(self) -> str:
         """获取工具描述"""
         pass
+
+    def run_with_timing(self, parameters: Dict[str, Any]) -> ToolResponse:
+        """执行工具并包装为标准 ToolResponse。"""
+        start_time = time.time()
+        try:
+            result = self.run(parameters)
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            return ToolResponse.success(
+                text=str(result),
+                data={"output": result},
+                stats={"time_ms": elapsed_ms},
+                context={"tool_name": self.name, "parameters": parameters},
+            )
+        except Exception as e:
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            return ToolResponse.error(
+                code="EXECUTION_ERROR",
+                message=f"执行工具 '{self.name}' 时发生异常: {str(e)}",
+                stats={"time_ms": elapsed_ms},
+                context={"tool_name": self.name, "parameters": parameters},
+            )
